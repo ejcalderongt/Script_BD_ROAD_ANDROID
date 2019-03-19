@@ -98,9 +98,6 @@ CONSTRAINT [PK_P_STOCK_APR] PRIMARY KEY CLUSTERED
 GO
 
 
-USE [ROADANDRT]
-GO
-
 /****** Object:  StoredProcedure [dbo].[AcumuladoObjetivos]    Script Date: 02/03/2019 01:56:53 a.m. ******/
 SET ANSI_NULLS ON
 GO
