@@ -1,0 +1,633 @@
+
+/******     P_PARAMEXT     ******/
+
+CREATE TABLE [dbo].[P_PARAMEXT](
+	[ID] [int] NOT NULL,
+	[Nombre] [nvarchar](50) COLLATE Modern_Spanish_CI_AS NULL CONSTRAINT [DF_P_PARAMEXT_Nombre]  DEFAULT (''),
+	[Valor] [nvarchar](50) COLLATE Modern_Spanish_CI_AS NULL CONSTRAINT [DF_P_PARAMEXT_Valor]  DEFAULT (''),
+ CONSTRAINT [PK_PARAMEXT] PRIMARY KEY CLUSTERED 
+(
+	[ID] ASC
+)WITH (PAD_INDEX  = OFF, IGNORE_DUP_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+
+/******     D_ATENCION      ******/
+
+ALTER TABLE D_ATENCION ADD 	CoorX float NOT NULL default 0
+GO
+ALTER TABLE D_ATENCION ADD 	CoorY float NOT NULL default 0
+GO
+ALTER TABLE D_ATENCION ADD 	CliCoorX float NOT NULL default 0
+GO
+ALTER TABLE D_ATENCION ADD 	CliCoory float NOT NULL default 0
+GO
+ALTER TABLE D_ATENCION ADD 	Dist float NOT NULL default 0
+GO
+
+
+/******  D_CLICOORD  ******/
+
+CREATE TABLE [dbo].[D_CLICOORD](
+	[CODIGO] [nvarchar](15) COLLATE Modern_Spanish_CI_AS NOT NULL,
+	[STAMP] [float] NOT NULL,
+	[COORX] [float] NULL,
+	[COORY] [float] NULL,
+	[STATCOM] [nvarchar](1) COLLATE Modern_Spanish_CI_AS NULL CONSTRAINT [DF_D_CLICOORD_STATCOM]  DEFAULT ('N'),
+ CONSTRAINT [PK_D_CLICOORD] PRIMARY KEY CLUSTERED 
+(
+	[CODIGO] ASC,
+	[STAMP] ASC
+)WITH (PAD_INDEX  = OFF, IGNORE_DUP_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY]
+
+GO
+
+
+SET QUOTED_IDENTIFIER ON
+GO
+
+CREATE TABLE [dbo].[D_FACTURAF](
+	[COREL] [nvarchar](25) NOT NULL,
+	[NOMBRE] [nvarchar](50) NULL,
+	[NIT] [nvarchar](30) NULL,
+	[DIRECCION] [nvarchar](50) NULL,
+ CONSTRAINT [PK_D_FACTURAF] PRIMARY KEY CLUSTERED 
+(
+	[COREL] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) 
+
+ON [PRIMARY]
+) ON [PRIMARY]
+
+GO
+
+CREATE TABLE [dbo].[D_CLINUEVO_APR](
+                [CODIGO] [nvarchar](15) COLLATE Modern_Spanish_CI_AS NOT NULL,
+                [RUTA] [nvarchar](15) COLLATE Modern_Spanish_CI_AS NOT NULL,
+                [FECHANAC] [datetime] NULL,
+                [CUI] [nvarchar](25) COLLATE Modern_Spanish_CI_AS NULL,
+                [DEPID] [nvarchar](50) COLLATE Modern_Spanish_CI_AS NULL,
+                [MUNIID] [nvarchar](50) COLLATE Modern_Spanish_CI_AS NULL,
+                [RELID] [nvarchar](2) COLLATE Modern_Spanish_CI_AS NULL,
+                [GRUPOETNID] [nvarchar](2) COLLATE Modern_Spanish_CI_AS NULL,
+                [ESCOLARID] [nvarchar](2) COLLATE Modern_Spanish_CI_AS NULL,
+                [ESTADOID] [nvarchar](2) COLLATE Modern_Spanish_CI_AS NULL,
+                [GENEROID] [nvarchar](2) COLLATE Modern_Spanish_CI_AS NULL,
+                [HIJOS] [int] NULL,
+                [STATCOM] [nvarchar](1) COLLATE Modern_Spanish_CI_AS NULL,
+CONSTRAINT [PK_D_CLINUEVO_APR] PRIMARY KEY CLUSTERED 
+(
+                [CODIGO] ASC,
+                [RUTA] ASC
+)WITH (PAD_INDEX  = OFF, IGNORE_DUP_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+
+CREATE TABLE [dbo].[P_STOCK_APR](
+                [RUTA] [nvarchar](15) COLLATE Modern_Spanish_CI_AS NOT NULL,
+                [CODIGO] [nvarchar](25) COLLATE Modern_Spanish_CI_AS NOT NULL,
+                [CANT] [float] NULL,
+                [PESO] [float] NULL,
+CONSTRAINT [PK_P_STOCK_APR] PRIMARY KEY CLUSTERED 
+(
+                [RUTA] ASC,
+                [CODIGO] ASC
+)WITH (PAD_INDEX  = OFF, IGNORE_DUP_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+
+
+USE [ROADANDRT]
+GO
+
+/****** Object:  StoredProcedure [dbo].[AcumuladoObjetivos]    Script Date: 02/03/2019 01:56:53 a.m. ******/
+SET ANSI_NULLS ON
+GO
+
+SET QUOTED_IDENTIFIER ON
+GO
+
+
+-- =============================================
+-- Author:		<JP>
+-- Create date: <03-05-2018>
+-- Description:	<Actualiza acumulado en tablas de objetivos>
+-- =============================================
+CREATE PROCEDURE [dbo].[AcumuladoObjetivos] 
+	@ruta nvarchar(15), 
+	@objano int,
+	@objmes  int
+AS
+BEGIN
+	-- SET NOCOUNT ON added to prevent extra result sets from
+	-- interfering with SELECT statements.
+	SET NOCOUNT ON;
+
+DECLARE @venta nvarchar(1)
+DECLARE @totalm float
+DECLARE @totalu float
+DECLARE @metam float
+DECLARE @metau float
+
+DECLARE @codigo nvarchar(15)
+DECLARE @counter int
+      SET @counter = 1
+
+
+SELECT @venta=VENTA FROM P_RUTA WHERE (CODIGO=@ruta) 
+
+
+-- Objetivos por ruta
+
+SELECT @metam=METAV,@metau=METAU FROM O_RUTA
+	WHERE (RUTA=@ruta) AND (OBJANO=@objano) AND (OBJMES=@objmes)
+SELECT @totalm=0
+SELECT @totalu=0
+
+IF @venta='P'
+BEGIN
+
+	SELECT @totalm=SUM(TOTAL) FROM D_PEDIDO
+		WHERE  (ANULADO='N') AND (RUTA=@ruta) AND (YEAR(FECHA)=@objano) AND (MONTH(FECHA)=@objmes)
+
+END
+ELSE
+	IF @metam>0
+	BEGIN
+		SELECT @totalm=SUM(TOTAL) FROM D_FACTURA
+			WHERE  (ANULADO='N') AND (RUTA=@ruta) AND (YEAR(FECHA)=@objano) AND (MONTH(FECHA)=@objmes)
+	END
+	IF @metau>0
+	BEGIN
+		SELECT  @totalu=SUM(D_FACTURAD.CANT) 
+			FROM D_FACTURA INNER JOIN D_FACTURAD ON D_FACTURA.COREL=D_FACTURAD.COREL
+			WHERE (D_FACTURA.ANULADO='N') AND (D_FACTURA.RUTA=@ruta) AND (YEAR(D_FACTURA.FECHA)=@objano) AND 
+
+(MONTH(D_FACTURA.FECHA)=@objmes)	
+	END
+END
+ 
+IF @metam>0
+BEGIN
+	UPDATE O_RUTA SET ACUMV=@totalm WHERE (RUTA=@ruta) AND (OBJANO=@objano) AND (OBJMES=@objmes)
+END
+IF @metau>0
+BEGIN
+	UPDATE O_RUTA SET ACUMU=@totalu WHERE (RUTA=@ruta) AND (OBJANO=@objano) AND (OBJMES=@objmes)
+END
+
+-- Objetivos por linea
+
+DECLARE lineas CURSOR READ_ONLY FOR
+	SELECT Codigo, MetaV, MetaU
+	FROM O_LINEA WHERE (RUTA=@ruta) AND (OBJANO=@objano) AND (OBJMES=@objmes)
+
+OPEN lineas
+
+FETCH NEXT FROM lineas INTO @codigo,@metam,@metau
+
+WHILE @@FETCH_STATUS = 0
+BEGIN
+		
+	-- PRINT @codigo+CHAR(9)+CAST(@metam AS VARCHAR(10))+CHAR(9)+CAST(@metau AS VARCHAR(10))
+
+	SELECT @totalm=0
+	SELECT @totalu=0
+
+	IF @venta<>'P'
+	BEGIN
+		SELECT  @totalm=SUM(D_FACTURAD.TOTAL), @totalu=SUM(D_FACTURAD.CANT) 
+		FROM  D_FACTURAD INNER JOIN D_FACTURA ON D_FACTURAD.COREL=D_FACTURA.COREL INNER JOIN
+			P_PRODUCTO ON D_FACTURAD.PRODUCTO=P_PRODUCTO.CODIGO
+		WHERE (D_FACTURA.ANULADO='N') AND (D_FACTURA.RUTA=@ruta) AND (YEAR(D_FACTURA.FECHA)=@objano) 
+		AND (MONTH(dbo.D_FACTURA.FECHA)=@objmes) AND (P_PRODUCTO.LINEA=@codigo)
+	END
+ 
+	IF @metam>0
+	BEGIN
+		UPDATE O_LINEA SET ACUMV=ISNULL(@totalm,0) WHERE (RUTA=@ruta) AND (CODIGO=@codigo) AND (OBJANO=@objano) 
+
+AND (OBJMES=@objmes)
+	END
+	IF @metau>0
+	BEGIN
+		UPDATE O_LINEA SET ACUMU=ISNULL(@totalu,0) WHERE (RUTA=@ruta) AND (CODIGO=@codigo) AND (OBJANO=@objano) 
+
+AND (OBJMES=@objmes)
+	END
+
+	FETCH NEXT FROM lineas INTO @codigo,@metam,@metau
+
+END
+
+CLOSE lineas
+DEALLOCATE lineas          
+
+
+-- Objetivos por procucto
+
+DECLARE productos CURSOR READ_ONLY FOR
+	SELECT Codigo, MetaV, MetaU
+	FROM O_PROD WHERE (RUTA=@ruta) AND (OBJANO=@objano) AND (OBJMES=@objmes)
+
+OPEN productos       
+
+FETCH NEXT FROM productos INTO @codigo,@metam,@metau
+
+WHILE @@FETCH_STATUS = 0
+BEGIN
+		
+	-- PRINT @codigo+CHAR(9)+CAST(@metam AS VARCHAR(10))+CHAR(9)+CAST(@metau AS VARCHAR(10))
+
+	SELECT @totalm=0
+	SELECT @totalu=0
+
+	IF @venta<>'P'
+	BEGIN
+		SELECT  @totalm=SUM(D_FACTURAD.TOTAL), @totalu=SUM(D_FACTURAD.CANT) 
+		FROM  D_FACTURAD INNER JOIN D_FACTURA ON D_FACTURAD.COREL=D_FACTURA.COREL 
+		WHERE (D_FACTURA.ANULADO='N') AND (D_FACTURA.RUTA=@ruta) AND (YEAR(D_FACTURA.FECHA)=@objano) 
+		AND (MONTH(dbo.D_FACTURA.FECHA)=@objmes) AND (D_FACTURAD.PRODUCTO=@codigo)
+	END
+ 
+	IF @metam>0
+	BEGIN
+		UPDATE O_PROD SET ACUMV=ISNULL(@totalm,0) WHERE (RUTA=@ruta) AND (CODIGO=@codigo) AND (OBJANO=@objano) AND 
+
+(OBJMES=@objmes)
+	END
+	IF @metau>0
+	BEGIN
+		UPDATE O_PROD SET ACUMU=ISNULL(@totalu,0) WHERE (RUTA=@ruta) AND (CODIGO=@codigo) AND (OBJANO=@objano) AND 
+
+(OBJMES=@objmes)
+	END
+
+	FETCH NEXT FROM productos INTO @codigo,@metam,@metau
+
+END
+
+
+CLOSE productos
+DEALLOCATE productos 
+
+
+GO
+
+ALTER TABLE P_ARCHIVOCONF 
+ALTER COLUMN PUERTO_IMPRESION NVARCHAR(50) NULL;
+
+ALTER TABLE P_COREL
+ADD FECHAVIG	datetime NULL,
+    RESGUARDO	int NULL,
+	VALOR1	int NULL;
+
+ALTER TABLE P_CORELLOG
+ADD FECHAVIG	datetime NULL;
+
+ALTER TABLE D_PEDIDOD 
+ADD UMVENTA	nvarchar(10) NULL,
+	FACTOR	float NULL,
+	UMSTOCK	nvarchar(25) NULL,
+	UMPESO	nvarchar(25) NULL;
+
+ALTER TABLE P_NIVELPRECIO 
+ADD DECIMALES	int NOT NULL DEFAULT(0)
+
+ALTER TABLE D_COBRO	
+ADD SERIE	nvarchar(25) NULL,
+CORELATIVO	int NULL ;
+
+ALTER TABLE D_COBRO	
+ADD DESC1	nvarchar(50) NULL,
+DESC2	nvarchar(50) NULL,
+DESC3	nvarchar(50) NULL;
+
+ALTER TABLE D_FACTURAP	
+ALTER COLUMN DESC1 nvarchar(50) NULL;
+
+ALTER TABLE D_FACTURAP	
+ALTER COLUMN DESC2	nvarchar(50) NULL;
+
+ALTER TABLE D_FACTURAP	
+ALTER COLUMN DESC3	nvarchar(50) NULL;
+
+--Modificaciones P_CLIENTE
+UPDATE P_CLIENTE SET CHEQUEPOST = 'N' WHERE CHEQUEPOST IS NULL
+UPDATE P_CLIENTE SET COD_PAIS = 'PA' WHERE COD_PAIS IS NULL
+UPDATE P_CLIENTE SET CODBARRA = '' WHERE CODBARRA IS NULL
+
+ALTER TABLE P_CLIENTE
+ALTER COLUMN CHEQUEPOST nvarchar(50) NOT NULL;
+
+ALTER TABLE P_CLIENTE	
+ADD CONSTRAINT [DF_P_CLIENTE_CHEQUEPOST]  DEFAULT ('N') FOR CHEQUEPOST;
+
+ALTER TABLE P_CLIENTE	
+ALTER COLUMN COD_PAIS nvarchar(10) NOT NULL;
+
+ALTER TABLE P_CLIENTE	
+ADD CONSTRAINT [DF_P_CLIENTE_COD_PAIS]  DEFAULT ('PA') FOR COD_PAIS;
+
+DROP INDEX [IX_P_CLIENTE_1] ON [dbo].[P_CLIENTE]
+GO
+
+ALTER TABLE P_CLIENTE	
+ALTER COLUMN CODBARRA nvarchar(50) NOT NULL 
+
+ALTER TABLE P_CLIENTE	
+ADD  CONSTRAINT [DF_P_CLIENTE_CODBARRA]  DEFAULT ('') FOR CODBARRA;
+
+/****** Object:  Index [IX_P_CLIENTE_1]    Script Date: 19/03/2019 10:37:09 a.m. ******/
+CREATE NONCLUSTERED INDEX [IX_P_CLIENTE_1] ON [dbo].[P_CLIENTE]
+(
+	[CODBARRA] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, 
+
+ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
+GO
+
+/****** Object:  Table [dbo].[P_CODNOLEC]    Script Date: 05/03/2019 12:34:11 p.m. ******/
+SET ANSI_NULLS ON
+GO
+
+SET QUOTED_IDENTIFIER ON
+GO
+
+CREATE TABLE [dbo].[P_CODNOLEC](
+	[CODIGO] [int] NOT NULL,
+	[NOMBRE] [nvarchar](50) NULL,
+ CONSTRAINT [PK_P_CODNOLEC] PRIMARY KEY CLUSTERED 
+(
+	[CODIGO] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) 
+
+ON [PRIMARY]
+) ON [PRIMARY]
+
+GO
+
+DELETE FROM P_PARAMEXT;
+INSERT INTO P_PARAMEXT (ID,idRuta,Nombre,Valor) VALUES(1,'GPS Margen ( Metros )','50')
+INSERT INTO P_PARAMEXT (ID,idRuta,Nombre,Valor) VALUES(2,'Stock Interfaz','S')
+INSERT INTO P_PARAMEXT (ID,idRuta,Nombre,Valor) VALUES(3,'Modalidad','TOL')
+INSERT INTO P_PARAMEXT (ID,idRuta,Nombre,Valor) VALUES(4,'Solicitud de inventario','')
+INSERT INTO P_PARAMEXT (ID,idRuta,Nombre,Valor) VALUES(5,'Pantalla aceptar carga','N')
+INSERT INTO P_PARAMEXT (ID,idRuta,Nombre,Valor) VALUES(6,'Boton Inventario ( Comunicacion )','S')
+INSERT INTO P_PARAMEXT (ID,idRuta,Nombre,Valor) VALUES(7,'Boton Precios ( Comunicacion )','S')
+INSERT INTO P_PARAMEXT (ID,idRuta,Nombre,Valor) VALUES(8,'Boton Recarga ( Comunicacion )','S')
+INSERT INTO P_PARAMEXT (ID,idRuta,Nombre,Valor) VALUES(9,'Cantidad de decimales en calculos','3')
+INSERT INTO P_PARAMEXT (ID,idRuta,Nombre,Valor) VALUES(10,'Cantidad de decimales impresion','3')
+INSERT INTO P_PARAMEXT (ID,idRuta,Nombre,Valor) VALUES(11,'Cantidad de decimales para cantidad','6')
+INSERT INTO P_PARAMEXT (ID,idRuta,Nombre,Valor) VALUES(12,'Simbolo de moneda','$')
+INSERT INTO P_PARAMEXT (ID,idRuta,Nombre,Valor) VALUES(13,'Seleccionar ayudante y vehículo','S')
+INSERT INTO P_PARAMEXT (ID,idRuta,Nombre,Valor) VALUES(14,'Envio parcial','S')
+INSERT INTO P_PARAMEXT (ID,idRuta,Nombre,Valor) VALUES(15,'Ordenar producto por nombre','S')
+INSERT INTO P_PARAMEXT (ID,idRuta,Nombre,Valor) VALUES(16,'Formato factura','TOL')
+
+CREATE FUNCTION [dbo].[AndrDate]
+
+(@ddate AS datetime)
+
+ 
+
+returns bigint
+
+ 
+
+as
+
+ 
+
+begin
+
+ 
+
+DECLARE @rv bigint
+
+DECLARE @vy bigint
+
+DECLARE @vm bigint
+
+DECLARE @vd bigint
+
+DECLARE @vh bigint
+
+DECLARE @vmi bigint
+
+ 
+
+SET @vy = CAST(YEAR(@ddate) AS bigint) -2000
+
+SET @vm = CAST(MONTH(@ddate) AS bigint)
+
+SET @vd = CAST(DAY(@ddate) AS bigint)
+
+SET @vh =  CAST(DATEPART(hour, @ddate) AS bigint)
+
+SET @vmi = CAST(DATEPART(minute, @ddate) AS bigint)
+
+ 
+
+SET @rv= @vy*10000+@vm*100+@vd
+
+SET @rv= @rv*10000+@vh*100+@vmi
+
+ 
+
+RETURN @rv
+
+ 
+
+end
+
+ CREATE FUNCTION [dbo].[AndrDateFin]
+(@ddate AS datetime)
+
+returns int
+
+as
+
+begin
+
+DECLARE @rv int
+DECLARE @vy int
+DECLARE @vm int
+DECLARE @vd int
+DECLARE @vh int
+DECLARE @vmi int
+
+SET @vy = CAST(YEAR(@ddate) AS int) -2000
+SET @vm = CAST(MONTH(@ddate) AS int) 
+SET @vd = CAST(DAY(@ddate) AS int) 
+SET @vh =  CAST(DATEPART(hour, @ddate) AS int) 
+SET @vmi = CAST(DATEPART(minute, @ddate) AS int) 
+
+SET @rv= @vy*10000+@vm*100+@vd
+SET @rv= @rv*10000+2400
+
+RETURN @rv
+
+end
+
+
+
+GO
+
+/****** Object:  UserDefinedFunction [dbo].[AndrDateIni]    Script Date: 19/03/2019 09:31:19 a.m. ******/
+SET ANSI_NULLS ON
+GO
+
+SET QUOTED_IDENTIFIER ON
+GO
+
+
+CREATE FUNCTION [dbo].[AndrDateIni]
+(@ddate AS datetime)
+
+returns int
+
+as
+
+begin
+
+DECLARE @rv int
+DECLARE @vy int
+DECLARE @vm int
+DECLARE @vd int
+DECLARE @vh int
+DECLARE @vmi int
+
+SET @vy = CAST(YEAR(@ddate) AS int) -2000
+SET @vm = CAST(MONTH(@ddate) AS int) 
+SET @vd = CAST(DAY(@ddate) AS int) 
+SET @vh =  CAST(DATEPART(hour, @ddate) AS int) 
+SET @vmi = CAST(DATEPART(minute, @ddate) AS int) 
+
+SET @rv= @vy*10000+@vm*100+@vd
+SET @rv= @rv*10000+0
+
+RETURN @rv
+
+end
+
+
+
+GO
+
+INSERT INTO P_MENUSISTEMA VALUES ('1.5.10',1,'Impresoras', 'tsmiImpresoras', 3, '1.5')
+INSERT INTO P_MENUROL
+SELECT COD_ROL, COD_SUCURSAL, '1.5.10',1, 1
+FROM P_MENUROL WHERE IDMENU =  '1.5.9'
+
+
+/****** Object:  Table [dbo].[P_HANDHELD]    Script Date: 18/03/2019 06:01:17 p.m. ******/
+SET ANSI_NULLS ON
+GO
+
+SET QUOTED_IDENTIFIER ON
+GO
+
+CREATE TABLE [dbo].[P_IMPRESORA](
+	[IDIMPRESORA] [nvarchar](20) NOT NULL,
+	[NUMSERIE] [nvarchar](50) NULL,
+	[MARCA] [nvarchar](20) NULL,
+	[MODELO] [nvarchar](20) NULL,
+	[CREADA] [nvarchar](20) NULL,
+	[MODIFICADA] [nvarchar](50) NULL,
+	[FECHA_CREADA] [datetime] NULL,
+	[FECHA_MODIFICADA] [datetime] NULL,
+ CONSTRAINT [PK_P_IMPRESORA] PRIMARY KEY CLUSTERED 
+(
+	[IDIMPRESORA] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) 
+
+ON [PRIMARY]
+) ON [PRIMARY]
+
+GO
+
+/****** Object:  Table [dbo].[P_CLIENTE_FACHADA]    Script Date: 19/03/2019 10:41:44 a.m. ******/
+SET ANSI_NULLS ON
+GO
+
+SET QUOTED_IDENTIFIER ON
+GO
+
+CREATE TABLE [dbo].[P_CLIENTE_FACHADA](
+	[CODIGO] [nvarchar](15) NOT NULL,
+	[IMAGEN] [image] NULL,
+ CONSTRAINT [PK_P_CLIENTE_FACHADA] PRIMARY KEY CLUSTERED 
+(
+	[CODIGO] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) 
+
+ON [PRIMARY]
+) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]
+
+GO
+
+/****** Object:  Table [dbo].[P_STOCKINV]    Script Date: 19/03/2019 10:44:47 a.m. ******/
+SET ANSI_NULLS ON
+GO
+
+SET QUOTED_IDENTIFIER ON
+GO
+
+CREATE TABLE [dbo].[P_STOCKINV](
+	[CODIGO] [nvarchar](15) NOT NULL,
+	[CANT] [float] NULL,
+	[PESO] [float] NULL,
+ CONSTRAINT [PK_P_STOCKINV_1] PRIMARY KEY CLUSTERED 
+(
+	[CODIGO] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) 
+
+ON [PRIMARY]
+) ON [PRIMARY]
+
+GO
+/****** Object:  Table [dbo].[P_CORELNC]    Script Date: 19/03/2019 11:21:25 a.m. ******/
+SET ANSI_NULLS ON
+GO
+
+SET QUOTED_IDENTIFIER ON
+GO
+
+CREATE TABLE [dbo].[P_CORELNC](
+	[RESOL] [nvarchar](25) NOT NULL,
+	[SERIE] [nvarchar](15) NOT NULL,
+	[CORELINI] [int] NOT NULL,
+	[CORELFIN] [int] NULL,
+	[CORELULT] [int] NULL,
+	[FECHARES] [datetime] NULL,
+	[RUTA] [nvarchar](15) NULL,
+	[EMP] [nvarchar](3) NOT NULL,
+	[ACTIVA] [nvarchar](1) NULL,
+	[HANDHELD] [nvarchar](20) NULL,
+	[FECHAVIG] [datetime] NULL,
+	[RESGUARDO] [int] NULL,
+	[VALOR1] [int] NULL,
+ CONSTRAINT [PK_P_CORELNC] PRIMARY KEY CLUSTERED 
+(
+	[RESOL] ASC,
+	[SERIE] ASC,
+	[CORELINI] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) 
+
+ON [PRIMARY]
+) ON [PRIMARY]
+
+GO
+
+ALTER TABLE [dbo].[P_CORELNC] ADD  CONSTRAINT [DF_P_CORELNC_RESGUARDO]  DEFAULT ((0)) FOR [RESGUARDO]
+GO
+
+ALTER TABLE [dbo].[P_CORELNC] ADD  CONSTRAINT [DF_P_CORELNC_VALOR1]  DEFAULT ((1)) FOR [VALOR1]
+GO
+
+
+UPDATE P_COREL SET  FECHAVIG = '30001231' WHERE FECHAVIG IS NULL
+UPDATE P_COREL SET RESGUARDO = 0  WHERE RESGUARDO IS NULL
+UPDATE P_COREL SET VALOR1 = 0  WHERE VALOR1 IS NULL
