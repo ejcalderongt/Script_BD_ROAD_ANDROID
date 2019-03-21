@@ -636,7 +636,6 @@ CREATE TABLE [dbo].[P_REF3](
 
 GO
 
-
 /*#EJC20190320_0953PM*/
 
 /*Contiene el listado de dispositivos válidos con licenciamiento*/
