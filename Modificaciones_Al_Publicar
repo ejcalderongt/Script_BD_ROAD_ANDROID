@@ -1,0 +1,32 @@
+Modificaciones a realizar antes de publicar:
+1- En Applications 
+   Assembly name: 
+        240 - ROAD_BOF_240
+        PRD - ROAD_BOF_PRUEBA
+2- En Publish
+   Publish Location 
+   	Publishing Folder Location 
+   		240 - \\172.16.10.9\road240_publicable
+   		PRD - \\172.16.10.9\road2017_publicable
+   Install Mode and Settings
+   	Options
+	   Descriptions
+              Suite name  
+   		240 - ROAD_2017_240
+   		PRD - ROAD_2017 
+              Producto name  
+   		240 - ROAD_2017_240
+   		PRD - ROAD_2017  
+   	Updates
+   		240 - \\172.16.10.9\road240
+   		PRD - \\172.16.10.9\road2017
+3- En frmLogin
+	Etiqueta de Version
+   		240 - Versión QA
+   		PRD - Versión PRD
+4- En el Conn.ini
+      Quitar la instancia PRODUCCION
+      Revisar que vaya USUARIO = 
+                       CLAVE = 
+		       SEGURIDAD_INTEGRADA = SI
+    
